@@ -3099,4 +3099,3 @@ layer {
     keep_top_k: 100
     confidence_threshold: 0.25
   }
-}
