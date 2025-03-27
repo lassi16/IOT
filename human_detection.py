@@ -5,19 +5,22 @@ import requests
 import time
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from notify_server import notify_server, notify_server_video
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Telegram bot configuration
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")  # Replace with your own chat_id
+CHAT_ID = os.getenv("CHAT_ID")
 VIDEO_URL = os.getenv("VIDEO_URL")
+SERVER_URL = os.getenv("SERVER_URL")
 
-# Ensure videos directory exists
 VIDEO_DIR = "videos/detection"
 if not os.path.exists(VIDEO_DIR):
     os.makedirs(VIDEO_DIR)
+
+IMAGE_DIR = "images/detection"
+if not os.path.exists(IMAGE_DIR):
+    os.makedirs(IMAGE_DIR)
 
 
 def get_video_filename():
@@ -27,17 +30,13 @@ def get_video_filename():
     )
 
 
-def send_video_to_telegram(video_path):
-    """Send recorded video to Telegram bot."""
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendVideo"
-    with open(video_path, "rb") as video:
-        files = {"video": video}
-        data = {"chat_id": CHAT_ID, "caption": "Motion detected - video recorded."}
-        response = requests.post(url, data=data, files=files)
-        if response.status_code == 200:
-            print(f"Video sent successfully: {video_path}")
-        else:
-            print(f"Failed to send video: {response.text}")
+def get_image_filename():
+    """Generate a unique filename with timestamp for images."""
+    return os.path.normpath(
+        os.path.join(
+            IMAGE_DIR, f"detection_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.jpg"
+        )
+    )
 
 
 def cleanup_old_videos(days=14):
@@ -99,7 +98,7 @@ def run_human_detection():
         exit()
 
     # Recording setup
-    min_record_seconds = 30
+    min_record_seconds = 10
     video_writer = None
     recording = False
     record_end_time = None  # Timestamp when recording should end
@@ -144,6 +143,13 @@ def run_human_detection():
 
         if person_detected:
             if not recording:
+                image_filename = get_image_filename()
+                cv2.imwrite(image_filename, frame)
+                print(f"File saved at: {image_filename}")
+                notify_server(image_filename)
+                # os.remove(image_filename)
+                print("Person detected — image sent.")
+
                 # Start recording
                 recording = True
                 record_end_time = current_time + min_record_seconds
@@ -162,12 +168,11 @@ def run_human_detection():
             if current_time >= record_end_time:
                 video_writer.release()
                 print(f"Recording stopped. Sending video: {video_filename}")
-                send_video_to_telegram(video_filename)
+                notify_server_video(video_filename)
                 recording = False
 
         cv2.imshow("Human Detection Video", frame)
 
-        # Press 'q' to exit
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
