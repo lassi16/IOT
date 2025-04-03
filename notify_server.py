@@ -21,7 +21,7 @@ def notify_server(image_path):
 
         try:
             response = requests.post(
-                f"{SERVER_URL}/detect-human-image",
+                f"{SERVER_URL}/api/detect-human/send-image",
                 files=files,
                 data=data,
             )
@@ -39,7 +39,7 @@ def notify_server_video(video_path):
         data = {"user_id": CHAT_ID, "timestamp": str(datetime.datetime.now())}
         try:
             response = requests.post(
-                f"{SERVER_URL}/detect-human-video",
+                f"{SERVER_URL}/api/detect-human/send-video",
                 files=files,
                 data=data,
             )

@@ -20,7 +20,7 @@ RETENTION_DAYS = 14  # Delete videos older than 14 days
 RECONNECT_DELAY = 5  # Seconds to wait before reconnecting
 MAX_RETRIES = 3  # Maximum number of retries for connection
 video_url = os.getenv("VIDEO_URL")
-print(video_url)
+print("video url: ", video_url)
 
 
 def get_video_filename():

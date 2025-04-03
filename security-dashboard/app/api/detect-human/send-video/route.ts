@@ -6,11 +6,13 @@ import { mkdir } from 'fs/promises';
 
 // Make sure upload directory exists
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
-try {
-    await mkdir(UPLOAD_DIR, { recursive: true });
-} catch (error) {
-    console.error('Failed to create uploads directory', error);
-}
+(async () => {
+    try {
+        await mkdir(UPLOAD_DIR, { recursive: true });
+    } catch (error) {
+        console.error('Failed to create uploads directory', error);
+    }
+})();
 
 export async function POST(request: NextRequest) {
     try {
@@ -36,13 +38,11 @@ export async function POST(request: NextRequest) {
         // Save file temporarily
         await writeFile(filepath, buffer);
 
-        // Send to Telegram
         const botToken = process.env.BOT_TOKEN;
         if (!botToken) {
             return NextResponse.json({ error: 'Bot token not configured' }, { status: 500 });
         }
 
-        // Prepare form data for Telegram API
         const telegramFormData = new FormData();
         telegramFormData.append('chat_id', userId);
         telegramFormData.append('caption', `Here is the video.`);
@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
 
         const endpoint = `https://api.telegram.org/bot${botToken}/sendVideo`;
 
-        // Send to Telegram
         const response = await fetch(endpoint, {
             method: 'POST',
             body: telegramFormData,
@@ -59,7 +58,6 @@ export async function POST(request: NextRequest) {
         // Delete temp file
         await unlink(filepath);
 
-        // Return response
         const result = await response.json();
 
         if (response.ok) {
